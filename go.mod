@@ -1,4 +1,4 @@
-module mwc
+module github.com/zeebo/mwc
 
 go 1.17
 

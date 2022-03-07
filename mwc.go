@@ -21,9 +21,17 @@ var (
 	rngInc   uint64 = uint64(time.Now().UnixNano())
 )
 
-func Rand() T { return New(atomic.AddUint64(&rngState, rngInc), rngInc) }
+func Rand() *T {
+	return New(atomic.AddUint64(&rngState, rngInc), rngInc)
+}
 
-func New(k1, k2 uint64) (r T) {
+func New(k1, k2 uint64) *T {
+	var r T
+	initT(k1, k2, &r)
+	return &r
+}
+
+func initT(k1, k2 uint64, r *T) {
 	const (
 		k = 0xcafef00dd15ea5e5
 		c = 0x14057b7ef767814f
@@ -53,12 +61,10 @@ func New(k1, k2 uint64) (r T) {
 	r.x2, b = bits.Add64(m5l, m4h, b)
 	r.x1, b = bits.Add64(m6l, m5h, b)
 	r.c = m6h + b
-
-	return
 }
 
 func (r *T) Int63() int64    { return int64(r.Uint64() & (1<<63 - 1)) }
-func (r *T) Seed(seed int64) { *r = New(uint64(seed), uint64(seed)) }
+func (r *T) Seed(seed int64) { initT(uint64(seed), uint64(seed), r) }
 
 func (r *T) Uint64() uint64 {
 	h, l := bits.Mul64(r.x3, m64)
@@ -104,35 +110,20 @@ func (r *T) Intn(n int) int {
 	return int(r.Uint64n(uint64(n)))
 }
 
-func (r *T) Float64() (v float64) {
-	for {
-		v = float64(r.Uint64()>>11) / (1 << 53)
-		if v != 1 {
-			return
-		}
-	}
-}
-
-func (r *T) Float32() (v float32) {
-	for {
-		v = float32(r.Uint32()>>8) / (1 << 24)
-		if v != 1 {
-			return
-		}
-	}
-}
+func (r *T) Float64() (v float64) { return float64(r.Uint64()>>11) / (1 << 53) }
+func (r *T) Float32() (v float32) { return float32(r.Uint32()>>8) / (1 << 24) }
 
 func (r *T) Read(p []byte) (n int, err error) {
 	n = len(p)
-	for len(p) > 8 {
-		binary.LittleEndian.PutUint64(p[:8], r.Uint64())
-		p = p[8:]
-	}
 	x := r.Uint64()
-	for len(p) > 0 {
-		p[0] = byte(x)
+	for len(p) > 8 {
+		binary.LittleEndian.PutUint64(p[:8], x)
+		p = p[8:]
+		x = r.Uint64()
+	}
+	for i := range p {
+		p[i] = byte(x)
 		x >>= 8
-		p = p[1:]
 	}
 	return
 }

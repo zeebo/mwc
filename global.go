@@ -1,6 +1,17 @@
 package mwc
 
-import "sync"
+import (
+	"sync"
+	"sync/atomic"
+	"time"
+)
+
+var (
+	rngState uint64
+	rngInc   uint64 = uint64(time.Now().UnixNano()) | 1
+)
+
+func Rand() *T { return New(atomic.AddUint64(&rngState, rngInc), rngInc) }
 
 var mwcPool = sync.Pool{New: func() interface{} { return Rand() }}
 

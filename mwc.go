@@ -3,8 +3,6 @@ package mwc
 import (
 	"encoding/binary"
 	"math/bits"
-	"sync/atomic"
-	"time"
 )
 
 type T struct {
@@ -15,15 +13,6 @@ type T struct {
 }
 
 const m64 = 0xfeb344657c0af413
-
-var (
-	rngState uint64
-	rngInc   uint64 = uint64(time.Now().UnixNano())
-)
-
-func Rand() *T {
-	return New(atomic.AddUint64(&rngState, rngInc), rngInc)
-}
 
 func New(k1, k2 uint64) *T {
 	var r T
